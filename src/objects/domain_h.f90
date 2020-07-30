@@ -110,6 +110,7 @@ module domain_interface
     type(tendencies_type) :: tend
 
     type(var_dict_t) :: variables_to_force
+    type(var_dict_t) :: variables_to_nudge
 
     type(interpolable_type) :: geo
     type(interpolable_type) :: geo_u
@@ -196,6 +197,7 @@ module domain_interface
     procedure :: interpolate_forcing
     procedure :: update_delta_fields
     procedure :: apply_forcing
+    procedure :: apply_nudging
 
     procedure :: calculate_delta_terrain
 
@@ -267,6 +269,17 @@ module domain_interface
         class(domain_t),    intent(inout) :: this
         type(time_delta_t), intent(in)    :: dt
     end subroutine
+
+    module subroutine apply_nudging(this, dt)
+        implicit none
+        class(domain_t),    intent(inout) :: this
+        type(time_delta_t), intent(in)    :: dt
+    end subroutine
+    ! module subroutine update_nudge_fields(this, dt)
+    !     implicit none
+    !     class(domain_t),    intent(inout) :: this
+    !     type(time_delta_t), intent(in)    :: dt
+    ! end subroutine
 
     module subroutine calculate_delta_terrain(this, forcing, options)
         implicit none

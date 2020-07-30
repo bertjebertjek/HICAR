@@ -15,10 +15,13 @@ module variable_interface
         real, pointer :: dqdt_3d(:,:,:) => null()   ! Note these have to be pointers so they get referenced when variable_t is passed around(?)
         real, pointer :: dqdt_2d(:,:)   => null()   ! Note these have to be pointers so they get referenced when variable_t is passed around(?)
 
+        real, pointer :: q_3d(:,:,:) => null()   ! To store the originial forcing_var in case we want to nudge
+
         logical                         :: unlimited_dim = .False.
         logical                         :: three_d = .False.
         logical                         :: two_d = .False.
         logical                         :: force_boundaries = .True.
+        logical                         :: nudge = .False.
         logical                         :: computed = .False.
         character(len=kMAX_NAME_LENGTH) :: forcing_var = ""
 
@@ -53,21 +56,21 @@ module variable_interface
         end subroutine
 
 
-        module subroutine init_grid(this, grid, forcing_var, force_boundaries)
+        module subroutine init_grid(this, grid, forcing_var, force_boundaries, nudge)
             implicit none
             class(variable_t),  intent(inout) :: this
             type(grid_t),       intent(in)    :: grid
             character(len=*),   intent(in), optional :: forcing_var
-            logical,            intent(in), optional :: force_boundaries
+            logical,            intent(in), optional :: force_boundaries, nudge
 
         end subroutine
 
-        module subroutine init_dims(this, dims, forcing_var, force_boundaries)
+        module subroutine init_dims(this, dims, forcing_var, force_boundaries, nudge)
             implicit none
             class(variable_t),  intent(inout) :: this
             integer,            intent(in)    :: dims(:)
             character(len=*),   intent(in), optional :: forcing_var
-            logical,            intent(in), optional :: force_boundaries
+            logical,            intent(in), optional :: force_boundaries, nudge
         end subroutine
 
     end interface

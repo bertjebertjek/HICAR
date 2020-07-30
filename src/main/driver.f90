@@ -129,6 +129,7 @@ program icar
 
             ! Make the boundary condition dXdt values into units of [X]/s
             call domain%update_delta_fields(boundary%current_time - domain%model_time)
+
         endif
         call input_timer%stop()
 
@@ -149,6 +150,13 @@ program icar
         call physics_timer%start()
         call step(domain, step_end(boundary%current_time, next_output), options)
         call physics_timer%stop()
+
+
+        ! nudge the fields if requested:  
+        ! Not sure yet if this should be every model time step or i/o time step.
+        ! if (nudging .eqv. .True.)   ! should become an options paramter (with own namelist)
+        call domain%apply_nudging(boundary%current_time - domain%model_time)
+
 
 
         ! -----------------------------------------------------

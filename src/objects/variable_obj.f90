@@ -11,12 +11,12 @@ contains
     !! Allocates 2d/3d data structure as appropriate
     !!
     !! -------------------------------
-    module subroutine init_grid(this, grid, forcing_var, force_boundaries)
+    module subroutine init_grid(this, grid, forcing_var, force_boundaries, nudge)
         implicit none
         class(variable_t),  intent(inout) :: this
         type(grid_t),       intent(in)    :: grid
         character(len=*),   intent(in), optional :: forcing_var
-        logical,            intent(in), optional :: force_boundaries
+        logical,            intent(in), optional :: force_boundaries, nudge
 
         integer :: err
 
@@ -31,6 +31,9 @@ contains
 
         this%force_boundaries = .True.
         if (present(force_boundaries)) this%force_boundaries = force_boundaries
+
+        ! this%nudge = .False.
+        ! if (present(nudge)) this%nudge = nudge
 
         if (grid%is2d) then
             this%n_dimensions = 2
@@ -70,7 +73,25 @@ contains
                 this%dqdt_3d = 0
             endif
 
+        ! !!- - - - -  Nudging (under constuction)  - - - - - - - - - - - -
+        !     ! if (trim(this%forcing_var) /= "") then
+        !     if(this_image()==1) write(*,*) "  initializing var ", trim(this%name), "nudge=" ,this%nudge
+        !     if (this%nudge .eqv. .True.) then
+        !         allocate(this%q_3d(grid%ims:grid%ime,    &
+        !                            grid%kms:grid%kme,    &
+        !                            grid%jms:grid%jme), stat=err)
+        !         if (err /= 0) stop "variable:grid:q_3d: Allocation request failed"
+
+        !         this%q_3d = 0
+
+        !         if(this_image()==1) write(*,*) "  set up nudging-forcing for ", trim(this%name)
+        !         ! print
+        !     endif
+
         endif
+
+
+        
 
     end subroutine
 
@@ -80,12 +101,12 @@ contains
     !! Allocates 2d/3d data structure as appropriate
     !!
     !! -------------------------------
-    module subroutine init_dims(this, dims, forcing_var, force_boundaries)
+    module subroutine init_dims(this, dims, forcing_var, force_boundaries, nudge)
         implicit none
         class(variable_t),  intent(inout) :: this
         integer,            intent(in)    :: dims(:)
         character(len=*),   intent(in), optional :: forcing_var
-        logical,            intent(in), optional :: force_boundaries
+        logical,            intent(in), optional :: force_boundaries, nudge
 
         integer :: err
 
@@ -99,6 +120,9 @@ contains
 
         this%force_boundaries = .True.
         if (present(force_boundaries)) this%force_boundaries = force_boundaries
+
+        this%nudge = .False.
+        if (present(nudge)) this%nudge = nudge
 
         if (this%two_d) then
             this%n_dimensions = 2
@@ -133,6 +157,21 @@ contains
 
                 this%dqdt_3d = 0
             endif
+
+            ! ! - - - - -  Nudging (under constuction)  - - - - - - - - - - - -
+            ! ! if (trim(this%forcing_var) /= "") then
+            ! if(this_image()==1) write(*,*) "  initializing var ", trim(this%name), "nudge=" ,this%nudge
+            ! if (this%nudge .eqv. .True.) then
+            !     allocate(this%q_3d(dims(1), dims(2), dims(3)), stat=err)
+            !     if (err /= 0) stop "variable:grid:q_3d: Allocation request failed"
+
+            !     this%q_3d = 0
+
+            !     if(this_image()==1) write(*,*) "  set up nudging-forcing for ", trim(this%name)
+            !     ! print
+            ! endif
+
+
         endif
 
     end subroutine

@@ -781,7 +781,7 @@ contains
                    high_res_soil_state, use_agl_height, time_varying_z, t_is_potential, qv_is_spec_humidity, &
                    qv_is_relative_humidity, &
                    use_mp_options, use_lt_options, use_adv_options, use_lsm_options, use_bias_correction, &
-                   use_block_options, use_cu_options
+                   use_block_options, use_cu_options, nudging
 
         character(len=MAXFILELENGTH) :: date, calendar, start_date, forcing_start_date, end_date
         integer :: year, month, day, hour, minute, second
@@ -806,7 +806,7 @@ contains
                               lsm_options_filename,     use_lsm_options,    &
                               adv_options_filename,     use_adv_options,    &
                               bias_options_filename,    use_bias_correction,&
-                              cu_options_filename,      use_cu_options
+                              cu_options_filename,      use_cu_options, nudging
 
 !       default parameters
         surface_io_only     = .False.
@@ -868,6 +868,8 @@ contains
 
         use_block_options=.False.
         block_options_filename = filename
+
+        nudging = .False.
 
         open(io_newunit(name_unit), file=filename)
         read(name_unit,nml=parameters)
@@ -1004,6 +1006,9 @@ contains
 
         options%use_block_options     = use_block_options
         options%block_options_filename= block_options_filename
+
+        options%nudging              =  nudging 
+        ! Do we need a separate nudging namelist to contain the nudging_factor(:) and possibly the fields to nudge?
 
         ! options are updated when complete
     end subroutine parameters_namelist

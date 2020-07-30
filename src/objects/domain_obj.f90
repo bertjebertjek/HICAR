@@ -162,17 +162,17 @@ contains
         if (0<opt%vars_to_allocate( kVARS%v) )                          call setup(this%v_mass,                   this%grid)
         if (0<opt%vars_to_allocate( kVARS%w) )                          call setup(this%w,                        this%grid )
         if (0<opt%vars_to_allocate( kVARS%w) )                          call setup(this%w_real,                   this%grid )
-        if (0<opt%vars_to_allocate( kVARS%water_vapor) )                call setup(this%water_vapor,              this%grid,     forcing_var=opt%parameters%qvvar,      list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%water_vapor) )                call setup(this%water_vapor,              this%grid,     forcing_var=opt%parameters%qvvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%potential_temperature) )      call setup(this%potential_temperature,    this%grid,     forcing_var=opt%parameters%tvar,       list=this%variables_to_force, force_boundaries=.True.)
-        if (0<opt%vars_to_allocate( kVARS%cloud_water) )                call setup(this%cloud_water_mass,         this%grid,     forcing_var=opt%parameters%qcvar,      list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%cloud_water) )                call setup(this%cloud_water_mass,         this%grid,     forcing_var=opt%parameters%qcvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%cloud_number_concentration))  call setup(this%cloud_number,             this%grid )
-        if (0<opt%vars_to_allocate( kVARS%cloud_ice) )                  call setup(this%cloud_ice_mass,           this%grid,     forcing_var=opt%parameters%qivar,      list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%cloud_ice) )                  call setup(this%cloud_ice_mass,           this%grid,     forcing_var=opt%parameters%qivar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%ice_number_concentration))    call setup(this%cloud_ice_number,         this%grid )
-        if (0<opt%vars_to_allocate( kVARS%rain_in_air) )                call setup(this%rain_mass,                this%grid,     forcing_var=opt%parameters%qrvar,      list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%rain_in_air) )                call setup(this%rain_mass,                this%grid,     forcing_var=opt%parameters%qrvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%rain_number_concentration))   call setup(this%rain_number,              this%grid )
-        if (0<opt%vars_to_allocate( kVARS%snow_in_air) )                call setup(this%snow_mass,                this%grid,     forcing_var=opt%parameters%qsvar,      list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%snow_in_air) )                call setup(this%snow_mass,                this%grid,     forcing_var=opt%parameters%qsvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%snow_number_concentration) )  call setup(this%snow_number,              this%grid )
-        if (0<opt%vars_to_allocate( kVARS%graupel_in_air) )             call setup(this%graupel_mass,             this%grid,     forcing_var=opt%parameters%qgvar,      list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%graupel_in_air) )             call setup(this%graupel_mass,             this%grid,     forcing_var=opt%parameters%qgvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%graupel_number_concentration))call setup(this%graupel_number,           this%grid )
         if (0<opt%vars_to_allocate( kVARS%precipitation) )              call setup(this%accumulated_precipitation,this%grid2d )
         if (0<opt%vars_to_allocate( kVARS%convective_precipitation) )   call setup(this%accumulated_convective_pcp,this%grid2d )
@@ -244,6 +244,15 @@ contains
         if (0<opt%vars_to_allocate( kVARS%znu) )                        allocate(this%znu(kms:kme),   source=0.0)
         if (0<opt%vars_to_allocate( kVARS%znw) )                        allocate(this%znw(kms:kme),   source=0.0)
 
+
+        if (this_image()==1 .and. opt%parameters%nudging) then
+          print *,"  Variables to nudge: "
+          do i = 1, this%variables_to_nudge%n_vars
+              ! if ( this%variables_to_nudge%var_list(i)%var%nudge)
+              print *,"    ", trim(this%variables_to_nudge%var_list(i)%name)
+          end do
+        endif
+
     end subroutine
 
     !> -------------------------------
@@ -255,13 +264,13 @@ contains
     !! and the forcing_var is both present and not blank ("")
     !!
     !! -------------------------------
-    subroutine setup_var(var, grid, forcing_var, list, force_boundaries)
+    subroutine setup_var(var, grid, forcing_var, list, force_boundaries, nudge, nudge_list)
         implicit none
         type(variable_t),   intent(inout) :: var
         type(grid_t),       intent(in)    :: grid
         character(len=*),   intent(in),   optional :: forcing_var
-        type(var_dict_t),   intent(inout),optional :: list
-        logical,            intent(in),   optional :: force_boundaries
+        type(var_dict_t),   intent(inout),optional :: list, nudge_list
+        logical,            intent(in),   optional :: force_boundaries, nudge
 
         if (present(forcing_var)) then
             call var%initialize(grid, forcing_var=forcing_var)
@@ -272,6 +281,19 @@ contains
                     call list%add_var(forcing_var, var)
                 endif
             endif
+
+            ! List for nudging the Q fields: (not needed for var, only exchangable?)
+            if (present(nudge_list)) then
+                if (Len(Trim(forcing_var)) /= 0) then
+                    if (nudge .eqv. .True.) then 
+                      var%nudge = nudge
+                      call nudge_list%add_var(forcing_var, var)
+                      ! print *,"  added ", var%name, " to nudge list"
+                    endif
+                endif
+            endif
+
+
         else
 
             call var%initialize(grid)
@@ -288,16 +310,16 @@ contains
     !! and the forcing_var is both present and not blank ("")
     !!
     !! -------------------------------
-    subroutine setup_exch(var, grid, forcing_var, list, force_boundaries)
+    subroutine setup_exch(var, grid, forcing_var, list, force_boundaries, nudge, nudge_list )
         implicit none
         type(exchangeable_t),   intent(inout) :: var
         type(grid_t),           intent(in)    :: grid
         character(len=*),       intent(in),   optional :: forcing_var
-        type(var_dict_t),       intent(inout),optional :: list
-        logical,                intent(in),   optional :: force_boundaries
+        type(var_dict_t),       intent(inout),optional :: list,nudge_list
+        logical,                intent(in),   optional :: force_boundaries, nudge
 
         if (present(forcing_var)) then
-            call var%initialize(grid, forcing_var=forcing_var)
+            call var%initialize(grid, forcing_var=forcing_var, nudge=nudge)
 
             if (present(list)) then
                 if (Len(Trim(forcing_var)) /= 0) then
@@ -305,6 +327,18 @@ contains
                     call list%add_var(forcing_var, var%meta_data)
                 endif
             endif
+
+            ! List for nudging the Q fields: 
+            if (present(nudge_list)) then
+                if (Len(Trim(forcing_var)) /= 0) then
+                    if (nudge .eqv. .True.) then 
+                      var%meta_data%nudge = nudge
+                      call nudge_list%add_var(forcing_var, var%meta_data)
+                       ! if (this_image()==1) print *,"  added ", trim(var%meta_data%forcing_var), " to nudge list"
+                    endif
+                endif
+            endif
+
         else
 
             call var%initialize(grid)
@@ -800,7 +834,7 @@ contains
 
             ! Terminology from Schär et al 2002, Leuenberger 2009: (can be simpliied later on, but for clarity)
             H  =  smooth_height  !sum(dz(1:max_level))  !
-            s  =  H / options%parameters%sleve_decay_factor  ! Need to split this up into a sleve_decay_factor_coarse (s1) and sleve_decay_factor_small (s2)
+            ! s  =  H / options%parameters%sleve_decay_factor  ! Need to split this up into a sleve_decay_factor_coarse (s1) and sleve_decay_factor_small (s2)
             s1 = H / options%parameters%decay_rate_L_topo 
             s2 = H / options%parameters%decay_rate_S_topo 
             n  =  options%parameters%sleve_n  ! this will have an effect on the z_level ratio throughout the vertical column, and thus on the terrain induced acceleration with wind=2 . Conceptually very nice, but for wind is 2 not ideal. Unless we let that acceleration depend on the difference between hi-res and lo-res terrain. 
@@ -1330,8 +1364,11 @@ contains
         call this%info%add_attribute("conv", a_string )
         write(a_string,*) options%physics%advection 
         call this%info%add_attribute("adv", a_string )
-        write(a_string,*) options%physics%windtype
-        call this%info%add_attribute("wind", a_string )
+        
+        call this%info%add_attribute("wind", trim(options%physics%windtype%as_string()) )  ! trim(physics_timer%as_string())
+        
+        ! write(a_string,*) options%physics%windtype
+        ! call this%info%add_attribute("wind", a_string )
         if(options%physics%windtype==2 .and. options%parameters%use_terrain_difference )then ! kCONSERVE_MASS
            write(a_string,*) options%parameters%use_terrain_difference
           call this%info%add_attribute("terrain_difference for wind acceleration:",a_string )
@@ -1452,29 +1489,6 @@ contains
         call this%grid_soil%set_grid_dimensions(    nx_global, ny_global, 4)
         call this%grid_monthly%set_grid_dimensions( nx_global, ny_global, 12)
 
-        ! -------------------------------------------------------------------------------------------------------------
-        ! ! For the SLEVE coordinate, the topography is split into large- and small-scale topography. The entrire terrain 
-        ! ! needs to be smoothed to derive the large-scale topography. To this end, the 2D mass grid needs to be extended 
-        ! ! on all sides (!) -> 2020/07/14  Found different solution, grid2d_ext and this section between dashed lines can be removed?
-
-        ! call this%grid2d_ext%set_grid_dimensions(   nx_global, ny_global, 0,                                       &
-        !                                             nx_extra = 2 * options%parameters%terrain_smooth_windowsize,  &
-        !                                             ny_extra = 2 * options%parameters%terrain_smooth_windowsize )
-        
-        ! ! if(this_image()==1) print*, "grid2d_ext ids ide: ", this%grid2d_ext%ids, this%grid2d_ext%ide 
-        ! ! if(this_image()==1) print*, "grid2d_ext jds jde: ", this%grid2d_ext%jds, this%grid2d_ext%jde 
-
-        ! this%grid2d_ext%ims = max(this%grid2d%ims - options%parameters%terrain_smooth_windowsize, this%grid2d%ids)
-        ! this%grid2d_ext%ime = min(this%grid2d%ime + options%parameters%terrain_smooth_windowsize, this%grid2d%ide)
-        ! this%grid2d_ext%jms = max(this%grid2d%jms - options%parameters%terrain_smooth_windowsize, this%grid2d%jds)
-        ! this%grid2d_ext%jme = min(this%grid2d%jme + options%parameters%terrain_smooth_windowsize, this%grid2d%jde)
-
-        ! ! if(this_image()==1) print*, "1. grid2d_ext ims ime: ", this%grid2d_ext%ims, this%grid2d_ext%ime 
-        ! ! ! if(this_image()==1) print*, "1. grid2d_ext jms jme: ", this%grid2d_ext%jms, this%grid2d_ext%jme 
-        ! ! if(this_image()==2) print*, "2. grid2d_ext ims ime: ", this%grid2d_ext%ims, this%grid2d_ext%ime 
-        ! ! if(this_image()==3) print*, "3. grid2d_ext ims ime: ", this%grid2d_ext%ims, this%grid2d_ext%ime 
-        ! ! if(this_image()==4) print*, "4. grid2d_ext ims ime: ", this%grid2d_ext%ims, this%grid2d_ext%ime 
-        ! -------------------------------------------------------------------------------------------------------------
         
         deallocate(temporary_data)
 
@@ -1583,6 +1597,30 @@ contains
         ! temporary to hold the variable to be interpolated to
         type(variable_t) :: var_to_update
 
+
+        ! ------------------------------------------------------------------------------------------------------
+        !! Before normalizing, we store the original forcing for those variables that we want to nudge later on. 
+        !! N.B. todo: make namelist flag that turns this on or off. 
+
+          ! do i = 1, this%variables_to_nudge%n_vars
+          !     ! if ( this%variables_to_nudge%var_list(i)%var%nudge)
+          !     print *,"    ", trim(this%variables_to_nudge%var_list(i)%name)
+          ! end do
+        
+        call this%variables_to_nudge%reset_iterator()
+        do while (this%variables_to_nudge%has_more_elements())
+            ! get the next variable
+            var_to_update = this%variables_to_nudge%next()
+
+            if (this_image()==1) print *,"    stored forcing for nudging var ", trim(var_to_update%name)  !this%variables_to_nudge%next()
+
+            if (var_to_update%three_d) then
+                var_to_update%q_3d = var_to_update%dqdt_3d
+            endif
+        enddo    
+        ! ------------------------------------------------------------------------------------------------------
+
+
         ! make sure the dictionary is reset to point to the first variable
         call this%variables_to_force%reset_iterator()
 
@@ -1598,9 +1636,16 @@ contains
 
                 var_to_update%dqdt_3d = (var_to_update%dqdt_3d - var_to_update%data_3d) / dt%seconds()
 
+                ! if ( trim(var_to_update%name) == "QV" ) then   !! so nudgin fields are already available :)
+                !   print * , " nudging var ", trim(var_to_update%name), "has shape", shape(var_to_update%dqdt_3d)
+                !   print * , " nudging var ", trim(var_to_update%name), "has max", MAXVAL(var_to_update%dqdt_3d)
+                ! endif
+
             endif
 
         enddo
+
+
 
         ! w has to be handled separately because it is the only variable that can be updated using the delta fields but is not
         ! actually read from disk. Note that if we move to balancing winds every timestep, then it doesn't matter.
@@ -1676,6 +1721,104 @@ contains
 
     end subroutine
 
+    
+
+
+    !> -------------------------------
+    !! Add the forcing update to boundaries and internal diagnosed fields
+    !!
+    !! This routine is the partner of update_delta_fields above.
+    !! update_delta_fields normalizes the difference by the time step of that difference field
+    !! apply forcing multiplies that /second value and multiplies it by the current time step before adding it
+    !!
+    !!
+    !!  Maybe we should nudge only the @ I/O time steps? Doesnt make much sense to do it all the time?
+    !!
+    !!
+    !! -------------------------------
+    module subroutine apply_nudging(this, dt, options)
+        implicit none
+        class(domain_t),    intent(inout) :: this
+        type(time_delta_t), intent(in)    :: dt
+        ! type(options_t),    intent(in)    :: options
+        integer :: ims, ime, jms, jme, k
+        real, allocatable :: nudge_factor(:)
+
+        ! temporary to hold the variable to be interpolated to
+        type(variable_t) :: var_to_update
+
+        ! if( Len(options%parameters%nudge_factor) /= 0) then
+        !   if ( Len(options%parameters%nudge_factor) == Len(options%parameters%nz)) then
+        !     nudge_factor = options%parameters%nudge_factor
+        !   elseif ( Len(options%parameters%nudge_factor) < Len(options%parameters%nz)) then
+        !     nudge_factor = SPREAD(1, 1, Len(options%parameters%nz))
+        !     nudge_factor(:Len(options%parameters%nudge_factor)) = options%parameters%nudge_factor
+        !   elseif ( Len(options%parameters%nudge_factor) > Len(options%parameters%nz)) then
+        !     ! error???
+        !   else
+        !     nudge_factor = SPREAD(1, 1, Len(options%parameters%nz))
+        !     nudge_factor(:25) = (/ 0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, &    ! 1-10
+        !                  0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.70,   &  ! 11-20  
+        !                  0.75, 0.8, 0.85, 0.9, 0.95 /)
+        !   endif
+            
+
+        ! Hard-coded for now, above code should replace this.
+        allocate( nudge_factor( this%kms : this%kme ))
+        ! nudge strictly in the upper layers, release contstraints lower down.
+        nudge_factor = SPREAD(1, 1, 60)
+        nudge_factor(:25) = (/ 0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, &    ! 1-10
+                         0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.70,   &  ! 11-20  
+                         0.75, 0.8, 0.85, 0.9, 0.95 /)
+
+
+
+
+        ! make sure the dictionary is reset to point to the first variable
+        call this%variables_to_nudge%reset_iterator()
+
+        ! No iterate through the dictionary as long as there are more elements present
+        do while (this%variables_to_nudge%has_more_elements())
+            ! get the next variable
+            var_to_update = this%variables_to_nudge%next()
+
+            !-----------------------
+            ! compare computed data_3d field to dqdt_3d field, and depending on 0<nudge_factor(k)<1, nudge to a certain degree:
+
+            do  k = this%grid%kms, this%grid%kme
+
+              ! var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds())  +  &
+              !                                  (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)
+
+              var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  var_to_update%q_3d(:,k,:)   +  &
+                                               (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)                                               
+
+            enddo
+
+            ! if ((this_image()==1).and.(options%parameters%debug))  then
+            if ((this_image()==1)) then
+              if ( trim(var_to_update%name) == "QV" ) then   !! so nudgin fields are already available :)
+                    print*, "  nudging var ", trim(var_to_update%name)  !, "  at z level ", k, ":" !"has shape", shape(var_to_update%dqdt_3d)
+                    print*, "    computed data_3d max: ", MAXVAL(var_to_update%data_3d(:,:,:))
+                    print*, "    forcing dqdt_3d*dt max: ", MAXVAL(var_to_update%dqdt_3d(:,:,:) * dt%seconds())
+                    print*, "    forcing q_3d max: ", MAXVAL(var_to_update%q_3d(:,:,:) )
+                    print*, "    dt%seconds()", dt%seconds()
+              endif      
+            endif
+
+
+        enddo
+
+    end subroutine
+
+
+
+
+
+
+
+
+
 
     !> -------------------------------
     !! Loop through all variables for which forcing data have been supplied and interpolate the forcing data to the domain
@@ -1737,6 +1880,11 @@ contains
                         nz = min(size(this%geo%z, 2), size(forcing%geo%z, 2))
                         call update_pressure(var_to_interpolate%dqdt_3d, forcing%geo%z(:,:nz,:), this%geo%z)
                     endif
+
+
+                ! ! (maybe) save the original forcing for nudging purposes?  BUt where?
+                ! ! org_forcing  =   var_to_update%dqdt_3d 
+                ! this%variables_to_force%next()%q_3d  =  var_to_update%dqdt_3d
 
                 else
                     call interpolate_variable(var_to_interpolate%data_3d, input_data, forcing, this, &
@@ -1924,7 +2072,7 @@ contains
                   zfr_v                 => this%zfr_v )
  
         
-        s  =  H / options%parameters%sleve_decay_factor  
+        ! s  =  H / options%parameters%sleve_decay_factor  
         s1 =  H / options%parameters%decay_rate_L_topo 
         s2 =  H / options%parameters%decay_rate_S_topo  
 
@@ -1968,7 +2116,7 @@ contains
             ! _______________ option 1B: the same as the above, but way shorter. ________________
             
             delta_terrain = (terrain - forcing_terrain)
-
+            s=s1 ! if we decide to use this again for w_real calc, reconsider this calculation
             do  i = this%grid%kms, this%grid%kme
             
               delta_dzdx_sc(:,i,:) =   ( delta_terrain(ims+1:ime,:) - delta_terrain(ims:ime-1,:) )    &

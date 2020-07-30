@@ -10,11 +10,12 @@ submodule(exchangeable_interface) exchangeable_implementation
 
 contains
 
-  module subroutine const(this, grid, metadata, forcing_var)
+  module subroutine const(this, grid, metadata, forcing_var, nudge)
     class(exchangeable_t),           intent(inout) :: this
     type(grid_t),                    intent(in)    :: grid
     type(variable_t),                intent(in),    optional :: metadata
     character(len=kMAX_NAME_LENGTH), intent(in),    optional :: forcing_var
+    logical,                         intent(in), optional ::  nudge  ! force_boundaries, ??
 
     integer :: err
 
@@ -33,7 +34,7 @@ contains
     allocate(this%data_3d(grid%ims:grid%ime, &
                           grid%kms:grid%kme, &
                           grid%jms:grid%jme), stat=err)
-    if (err /= 0) stop "exchangeable:dqdt_3d: Allocation request failed"
+    if (err /= 0) stop "exchangeable:data_3d: Allocation request failed"
     this%data_3d = 0
 
     allocate( this%halo_south_in( grid%ns_halo_nx+halo_size*2, grid%halo_nz,   halo_size    )[*])
@@ -59,6 +60,23 @@ contains
         if (err /= 0) stop "exchangeable:dqdt_3d: Allocation request failed"
 
         this%meta_data%dqdt_3d = 0
+    endif
+
+    ! - - - - -  Nudging (under constuction)  - - - - - - - - - - - -
+    this%meta_data%nudge = .False.
+    if (present(nudge)) this%meta_data%nudge = nudge
+
+    ! if(this_image()==1) write(*,*) "  initializing var ", trim(this%meta_data%forcing_var), "nudge=" ,this%meta_data%nudge !, trim(this%name)
+    if (this%meta_data%nudge .eqv. .True.) then
+        allocate(this%meta_data%q_3d(grid%ims:grid%ime,    &
+                                     grid%kms:grid%kme,    &
+                                     grid%jms:grid%jme), stat=err)
+        if (err /= 0) stop "variable:grid:q_3d: Allocation request failed"
+
+        this%meta_data%q_3d = 0
+
+        ! if(this_image()==1) write(*,*) "  set up nudging-forcing for ", trim(this%meta_data%forcing_var)
+
     endif
 
 
