@@ -152,10 +152,8 @@ program icar
         call physics_timer%stop()
 
 
-        ! nudge the fields if requested:  
-        ! Not sure yet if this should be every model time step or i/o time step.
-        ! if (nudging .eqv. .True.)   ! should become an options paramter (with own namelist)
-        call domain%apply_nudging(boundary%current_time - domain%model_time)
+        ! nudge the fields if requested:    ! Not sure yet if this should be every model time step or i/o time step.
+        ! if (options%parameters%nudging )    call domain%apply_nudging(boundary%current_time - domain%model_time)
 
 
 

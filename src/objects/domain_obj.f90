@@ -795,10 +795,10 @@ contains
                   dz_mass               => this%dz_mass%data_3d,                &
                   dz_interface          => this%dz_interface%data_3d,           &
                   terrain               => this%terrain%data_2d,                &
-                  terrain_u             => this%terrain_u,              &
-                  terrain_v             => this%terrain_v,              &
-                  h1                    => this%h1,                &  
-                  h2                    => this%h2,                & 
+                  terrain_u             => this%terrain_u,                      &
+                  terrain_v             => this%terrain_v,                      &
+                  h1                    => this%h1,                             &    
+                  h2                    => this%h2,                             & 
                   h1_u                  => this%h1_u,                &  
                   h2_u                  => this%h2_u,                & 
                   h1_v                  => this%h1_v,                &  
@@ -977,7 +977,7 @@ contains
             enddo  ! ____ end SLEVE simple Implementation  _______
             
 
-          else  !. i.e. no sleve coordinates
+          else  !. i.e. no sleve coordinate ________________________________________________________________________
             i = this%grid%kms
 
             max_level = nz
@@ -1365,10 +1365,10 @@ contains
         write(a_string,*) options%physics%advection 
         call this%info%add_attribute("adv", a_string )
         
-        call this%info%add_attribute("wind", trim(options%physics%windtype%as_string()) )  ! trim(physics_timer%as_string())
+        ! call this%info%add_attribute("wind", trim(options%physics%windtype%as_string()) )  ! trim(physics_timer%as_string())
         
-        ! write(a_string,*) options%physics%windtype
-        ! call this%info%add_attribute("wind", a_string )
+        write(a_string,*) options%physics%windtype
+        call this%info%add_attribute("wind", a_string )
         if(options%physics%windtype==2 .and. options%parameters%use_terrain_difference )then ! kCONSERVE_MASS
            write(a_string,*) options%parameters%use_terrain_difference
           call this%info%add_attribute("terrain_difference for wind acceleration:",a_string )
@@ -1736,13 +1736,22 @@ contains
     !!
     !!
     !! -------------------------------
-    module subroutine apply_nudging(this, dt, options)
+    module subroutine apply_nudging(this, dt) !, options) ! io_dt or options%parameters%nudging = 1 or 2 
         implicit none
         class(domain_t),    intent(inout) :: this
         type(time_delta_t), intent(in)    :: dt
         ! type(options_t),    intent(in)    :: options
+        ! logical,            intent(in),   optional :: io_dt  ! switch for nufging at every outpt timestep or every model timestep
         integer :: ims, ime, jms, jme, k
-        real, allocatable :: nudge_factor(:)
+        real, allocatable :: nudge_factor(:)!, delta_t
+
+        ! if (present(io_dt)) then ! or ! if (options%paramters%nudging=1) then 
+        !   delta_t = 1
+        ! elseif (io_dt .eqv. .False.) then  ! if (options%paramters%nudging=2) then 
+        !   delta_t = dt%seconds()
+        ! endif
+        
+      
 
         ! temporary to hold the variable to be interpolated to
         type(variable_t) :: var_to_update
@@ -1782,19 +1791,6 @@ contains
             ! get the next variable
             var_to_update = this%variables_to_nudge%next()
 
-            !-----------------------
-            ! compare computed data_3d field to dqdt_3d field, and depending on 0<nudge_factor(k)<1, nudge to a certain degree:
-
-            do  k = this%grid%kms, this%grid%kme
-
-              ! var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds())  +  &
-              !                                  (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)
-
-              var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  var_to_update%q_3d(:,k,:)   +  &
-                                               (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)                                               
-
-            enddo
-
             ! if ((this_image()==1).and.(options%parameters%debug))  then
             if ((this_image()==1)) then
               if ( trim(var_to_update%name) == "QV" ) then   !! so nudgin fields are already available :)
@@ -1805,6 +1801,23 @@ contains
                     print*, "    dt%seconds()", dt%seconds()
               endif      
             endif
+
+            !-----------------------
+            ! compare computed data_3d field to dqdt_3d field, and depending on 0<nudge_factor(k)<1, nudge to a certain degree:
+
+            do  k = this%grid%kms, this%grid%kme
+              ! ! !   for nudging at model timestep:
+              var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds()  &
+                                                                          +  var_to_update%data_3d(:,k,:)              &
+                                                                          )  +                                         &
+                                               (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)
+              ! above=simply same as = nudge_factor(k)  *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds()) +   var_to_update%data_3d(:,k,:)
+
+              ! ! !   for nudging at io timestep:
+              ! var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  var_to_update%q_3d(:,k,:)   +  &
+              !                                  (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)                                               
+
+            enddo
 
 
         enddo
@@ -2033,7 +2046,7 @@ contains
         real :: s, s1, s2, s1_2
         integer :: i
 
-        call read_forcing_terrain(this, options, forcing)
+        call read_forcing_terrain(this, options, forcing)  ! if( options%paramters%windtype ==3)
 
 
         allocate(this%zfr_u( this%u_grid2d_ext% ims : this%u_grid2d_ext% ime,   &  ! can go to calculate delta terrain ?
