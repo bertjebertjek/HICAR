@@ -61,7 +61,8 @@ module variable_interface
             class(variable_t),  intent(inout) :: this
             type(grid_t),       intent(in)    :: grid
             character(len=*),   intent(in), optional :: forcing_var
-            logical,            intent(in), optional :: force_boundaries, nudge
+            logical,            intent(in), optional :: force_boundaries
+            integer,            intent(in), optional :: nudge
 
         end subroutine
 
@@ -70,7 +71,8 @@ module variable_interface
             class(variable_t),  intent(inout) :: this
             integer,            intent(in)    :: dims(:)
             character(len=*),   intent(in), optional :: forcing_var
-            logical,            intent(in), optional :: force_boundaries, nudge
+            logical,            intent(in), optional :: force_boundaries
+            integer,            intent(in), optional :: nudge
         end subroutine
 
     end interface

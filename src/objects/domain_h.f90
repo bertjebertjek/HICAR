@@ -264,16 +264,18 @@ module domain_interface
         type(time_delta_t), intent(in)    :: dt
     end subroutine
 
-    module subroutine apply_forcing(this, dt)
+    module subroutine apply_forcing(this, dt, options)
         implicit none
         class(domain_t),    intent(inout) :: this
         type(time_delta_t), intent(in)    :: dt
+        type(options_t), intent(in)       :: options
     end subroutine
 
-    module subroutine apply_nudging(this, dt)
+    module subroutine apply_nudging(this, dt, options)
         implicit none
         class(domain_t),    intent(inout) :: this
         type(time_delta_t), intent(in)    :: dt
+        type(options_t), intent(in)       :: options
     end subroutine
     ! module subroutine update_nudge_fields(this, dt)
     !     implicit none
@@ -284,8 +286,8 @@ module domain_interface
     module subroutine calculate_delta_terrain(this, forcing, options)
         implicit none
         class(domain_t), intent(inout) :: this
-        type(boundary_t), intent(in)    :: forcing
-        type(options_t), intent(in) :: options
+        type(boundary_t), intent(in)   :: forcing
+        type(options_t), intent(in)    :: options
     end subroutine
 
   end interface

@@ -774,14 +774,14 @@ contains
         real    :: dx, dxlow, outputinterval, inputinterval, t_offset, smooth_wind_distance, frames_per_outfile
         real    :: cfl_reduction_factor
         integer :: ntimesteps
-        integer :: longitude_system
+        integer :: longitude_system, nudging
         integer :: nz, n_ext_winds,buffer, warning_level, cfl_strictness
         logical :: ideal, readz, readdz, interactive, debug, external_winds, surface_io_only, &
                    mean_winds, mean_fields, restart, advect_density, z_is_geopotential, z_is_on_interface,&
                    high_res_soil_state, use_agl_height, time_varying_z, t_is_potential, qv_is_spec_humidity, &
                    qv_is_relative_humidity, &
                    use_mp_options, use_lt_options, use_adv_options, use_lsm_options, use_bias_correction, &
-                   use_block_options, use_cu_options, nudging
+                   use_block_options, use_cu_options
 
         character(len=MAXFILELENGTH) :: date, calendar, start_date, forcing_start_date, end_date
         integer :: year, month, day, hour, minute, second
@@ -869,7 +869,7 @@ contains
         use_block_options=.False.
         block_options_filename = filename
 
-        nudging = .False.
+        nudging = 0 !.False.
 
         open(io_newunit(name_unit), file=filename)
         read(name_unit,nml=parameters)

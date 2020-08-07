@@ -153,7 +153,7 @@ program icar
 
 
         ! nudge the fields if requested:    ! Not sure yet if this should be every model time step or i/o time step.
-        ! if (options%parameters%nudging )    call domain%apply_nudging(boundary%current_time - domain%model_time)
+        if (options%parameters%nudging ==1 )   call domain%apply_nudging(boundary%current_time - domain%model_time, options)
 
 
 

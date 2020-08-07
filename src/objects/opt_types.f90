@@ -244,7 +244,8 @@ module options_types
         real    :: sleve_n              ! Additional parameter introduced by Leuenberger 2009.
         logical :: use_terrain_difference ! calculate dzdx from the differenec between hi- and lo-res terrain, rather than from hi-res terrain only. For use when forcing data is of a resolution that it resolves signigicant terrain influence (on wind field mainly) 
 
-        logical :: nudging   ! constrain the solution of certain variables (QV,QS,QC,QI,QR,QG) to be close (nudge_factor) to the forcing data
+        ! logical :: nudging   ! constrain the solution of certain variables (QV,QS,QC,QI,QR,QG) to be close (nudge_factor) to the forcing data
+        integer :: nudging   ! constrain the solution of certain variables (QV,QS,QC,QI,QR,QG) to be close (nudge_factor) to the forcing data
 
         ! physics parameterization options
         logical :: use_mp_options

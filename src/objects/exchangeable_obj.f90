@@ -15,7 +15,7 @@ contains
     type(grid_t),                    intent(in)    :: grid
     type(variable_t),                intent(in),    optional :: metadata
     character(len=kMAX_NAME_LENGTH), intent(in),    optional :: forcing_var
-    logical,                         intent(in), optional ::  nudge  ! force_boundaries, ??
+    integer,                         intent(in),    optional ::  nudge  ! force_boundaries, ??
 
     integer :: err
 
@@ -64,7 +64,8 @@ contains
 
     ! - - - - -  Nudging (under constuction)  - - - - - - - - - - - -
     this%meta_data%nudge = .False.
-    if (present(nudge)) this%meta_data%nudge = nudge
+    ! if ( present(nudge)) print*, "nudge ", trim(forcing_var)," - " ,nudge
+    if ( present(nudge) .and. nudge /= 0) this%meta_data%nudge = .True.
 
     ! if(this_image()==1) write(*,*) "  initializing var ", trim(this%meta_data%forcing_var), "nudge=" ,this%meta_data%nudge !, trim(this%name)
     if (this%meta_data%nudge .eqv. .True.) then

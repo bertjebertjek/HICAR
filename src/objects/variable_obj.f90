@@ -16,7 +16,8 @@ contains
         class(variable_t),  intent(inout) :: this
         type(grid_t),       intent(in)    :: grid
         character(len=*),   intent(in), optional :: forcing_var
-        logical,            intent(in), optional :: force_boundaries, nudge
+        logical,            intent(in), optional :: force_boundaries
+        integer,            intent(in), optional :: nudge
 
         integer :: err
 
@@ -106,7 +107,8 @@ contains
         class(variable_t),  intent(inout) :: this
         integer,            intent(in)    :: dims(:)
         character(len=*),   intent(in), optional :: forcing_var
-        logical,            intent(in), optional :: force_boundaries, nudge
+        logical,            intent(in), optional :: force_boundaries
+        integer,            intent(in), optional :: nudge
 
         integer :: err
 
@@ -122,7 +124,7 @@ contains
         if (present(force_boundaries)) this%force_boundaries = force_boundaries
 
         this%nudge = .False.
-        if (present(nudge)) this%nudge = nudge
+        if ( present(nudge) .and. nudge /= 0) this%nudge = .True.
 
         if (this%two_d) then
             this%n_dimensions = 2

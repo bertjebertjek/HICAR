@@ -245,7 +245,7 @@ contains
         if (0<opt%vars_to_allocate( kVARS%znw) )                        allocate(this%znw(kms:kme),   source=0.0)
 
 
-        if (this_image()==1 .and. opt%parameters%nudging) then
+        if (this_image()==1 .and. opt%parameters%nudging>0) then
           print *,"  Variables to nudge: "
           do i = 1, this%variables_to_nudge%n_vars
               ! if ( this%variables_to_nudge%var_list(i)%var%nudge)
@@ -270,7 +270,8 @@ contains
         type(grid_t),       intent(in)    :: grid
         character(len=*),   intent(in),   optional :: forcing_var
         type(var_dict_t),   intent(inout),optional :: list, nudge_list
-        logical,            intent(in),   optional :: force_boundaries, nudge
+        logical,            intent(in),   optional :: force_boundaries
+        integer,            intent(in),   optional :: nudge
 
         if (present(forcing_var)) then
             call var%initialize(grid, forcing_var=forcing_var)
@@ -285,8 +286,8 @@ contains
             ! List for nudging the Q fields: (not needed for var, only exchangable?)
             if (present(nudge_list)) then
                 if (Len(Trim(forcing_var)) /= 0) then
-                    if (nudge .eqv. .True.) then 
-                      var%nudge = nudge
+                    if (nudge > 0) then 
+                      var%nudge = .True.
                       call nudge_list%add_var(forcing_var, var)
                       ! print *,"  added ", var%name, " to nudge list"
                     endif
@@ -315,8 +316,9 @@ contains
         type(exchangeable_t),   intent(inout) :: var
         type(grid_t),           intent(in)    :: grid
         character(len=*),       intent(in),   optional :: forcing_var
-        type(var_dict_t),       intent(inout),optional :: list,nudge_list
-        logical,                intent(in),   optional :: force_boundaries, nudge
+        type(var_dict_t),       intent(inout),optional :: list, nudge_list
+        logical,                intent(in),   optional :: force_boundaries
+        integer,                intent(in),   optional :: nudge
 
         if (present(forcing_var)) then
             call var%initialize(grid, forcing_var=forcing_var, nudge=nudge)
@@ -331,8 +333,8 @@ contains
             ! List for nudging the Q fields: 
             if (present(nudge_list)) then
                 if (Len(Trim(forcing_var)) /= 0) then
-                    if (nudge .eqv. .True.) then 
-                      var%meta_data%nudge = nudge
+                    if (nudge > 0 ) then 
+                      var%meta_data%nudge = .True. !nudge
                       call nudge_list%add_var(forcing_var, var%meta_data)
                        ! if (this_image()==1) print *,"  added ", trim(var%meta_data%forcing_var), " to nudge list"
                     endif
@@ -1636,11 +1638,6 @@ contains
 
                 var_to_update%dqdt_3d = (var_to_update%dqdt_3d - var_to_update%data_3d) / dt%seconds()
 
-                ! if ( trim(var_to_update%name) == "QV" ) then   !! so nudgin fields are already available :)
-                !   print * , " nudging var ", trim(var_to_update%name), "has shape", shape(var_to_update%dqdt_3d)
-                !   print * , " nudging var ", trim(var_to_update%name), "has max", MAXVAL(var_to_update%dqdt_3d)
-                ! endif
-
             endif
 
         enddo
@@ -1664,11 +1661,13 @@ contains
     !! apply forcing multiplies that /second value and multiplies it by the current time step before adding it
     !!
     !! -------------------------------
-    module subroutine apply_forcing(this, dt)
+    module subroutine apply_forcing(this, dt, options)
         implicit none
         class(domain_t),    intent(inout) :: this
         type(time_delta_t), intent(in)    :: dt
-        integer :: ims, ime, jms, jme
+        type(options_t),    intent(in)    :: options
+        integer :: ims, ime, jms, jme, i
+        logical :: skip
 
         ! temporary to hold the variable to be interpolated to
         type(variable_t) :: var_to_update
@@ -1680,6 +1679,23 @@ contains
         do while (this%variables_to_force%has_more_elements())
             ! get the next variable
             var_to_update = this%variables_to_force%next()
+            ! if ((this_image()==1))  print*, "applying forcing to ", trim(var_to_update%name)
+                
+              ! ------------------------------------------------------------------------------------------------
+              if( options%parameters%nudging == 2) then   !. If nudging at internal time step, the forcing should not be applied for nudged parameters?
+                do i = 1, this%variables_to_nudge%n_vars
+                    if (trim(this%variables_to_nudge%var_list(i)%name) == trim(var_to_update%name)) then   ! var_list(this%current_variable)%name
+                        if ((this_image()==1)) print*, "skipping the forcing of nudged variable ", trim(this%variables_to_nudge%var_list(i)%name)
+                        skip = .True.
+                        EXIT  ! exit current do loop
+                    else
+                        skip = .False.
+                    endif
+                end do
+                if (skip) CYCLE ! go to the next step in this do loop, i.e. the next var_to_update
+              endif  
+              ! ------------------------------------------------------------------------------------------------
+                
 
             if (var_to_update%two_d) then
                 ! apply forcing throughout the domain for 2D diagnosed variables (e.g. SST, SW)
@@ -1692,7 +1708,7 @@ contains
                     ime = ubound(var_to_update%data_3d, 1)
                     jms = lbound(var_to_update%data_3d, 3)
                     jme = ubound(var_to_update%data_3d, 3)
-
+                    ! if (this_image()==1) print*, "  updating ", trim(var_to_update%name)  ! to check that the skip statement works
                     if (this%west_boundary) then
                         var_to_update%data_3d(ims,:,jms+1:jme-1) = var_to_update%data_3d(ims,:,jms+1:jme-1) + (var_to_update%dqdt_3d(ims,:,jms+1:jme-1) * dt%seconds())
                     endif
@@ -1725,36 +1741,28 @@ contains
 
 
     !> -------------------------------
-    !! Add the forcing update to boundaries and internal diagnosed fields
+    !! Apply nudging at input/output or forcing time step (IO nudging or options%parameters%nudging==1  )
+    !!               or at internal model time step ( options%parameters%nudging==2)
     !!
-    !! This routine is the partner of update_delta_fields above.
+    !! Depending on or options%parameters%nudging this module is either called from driver.f90 (2) or from time_step.f90 (1)
+    !!
+    !!
+    !!
     !! update_delta_fields normalizes the difference by the time step of that difference field
     !! apply forcing multiplies that /second value and multiplies it by the current time step before adding it
     !!
-    !!
-    !!  Maybe we should nudge only the @ I/O time steps? Doesnt make much sense to do it all the time?
-    !!
-    !!
     !! -------------------------------
-    module subroutine apply_nudging(this, dt) !, options) ! io_dt or options%parameters%nudging = 1 or 2 
+    module subroutine apply_nudging(this, dt, options) ! io_dt or options%parameters%nudging = 1 or 2 
         implicit none
         class(domain_t),    intent(inout) :: this
         type(time_delta_t), intent(in)    :: dt
-        ! type(options_t),    intent(in)    :: options
+        type(options_t),    intent(in)    :: options
         ! logical,            intent(in),   optional :: io_dt  ! switch for nufging at every outpt timestep or every model timestep
         integer :: ims, ime, jms, jme, k
         real, allocatable :: nudge_factor(:)!, delta_t
+        type(variable_t) :: var_to_update          ! temporary to hold the variable to be interpolated to
 
-        ! if (present(io_dt)) then ! or ! if (options%paramters%nudging=1) then 
-        !   delta_t = 1
-        ! elseif (io_dt .eqv. .False.) then  ! if (options%paramters%nudging=2) then 
-        !   delta_t = dt%seconds()
-        ! endif
-        
-      
 
-        ! temporary to hold the variable to be interpolated to
-        type(variable_t) :: var_to_update
 
         ! if( Len(options%parameters%nudge_factor) /= 0) then
         !   if ( Len(options%parameters%nudge_factor) == Len(options%parameters%nz)) then
@@ -1803,19 +1811,22 @@ contains
             endif
 
             !-----------------------
-            ! compare computed data_3d field to dqdt_3d field, and depending on 0<nudge_factor(k)<1, nudge to a certain degree:
+            ! depending on 0<nudge_factor(k)<1, nudge to a certain degree:
 
             do  k = this%grid%kms, this%grid%kme
-              ! ! !   for nudging at model timestep:
-              var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds()  &
-                                                                          +  var_to_update%data_3d(:,k,:)              &
-                                                                          )  +                                         &
-                                               (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)
-              ! above=simply same as = nudge_factor(k)  *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds()) +   var_to_update%data_3d(:,k,:)
+                ! ! !   for nudging at model timestep:
+                if (options%parameters%nudging ==2 ) then ! if nudging at internal timestep:
+                  var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds()  &
+                                                                              +  var_to_update%data_3d(:,k,:)              &
+                                                                              )  +                                         &
+                                                   (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)
+                  ! above=simply same as = nudge_factor(k)  *  (var_to_update%dqdt_3d(:,k,:) * dt%seconds()) +   var_to_update%data_3d(:,k,:)
+                  ! does this make sense? It is the same as apply_forcing. Are we now douible counting at the edges?
 
-              ! ! !   for nudging at io timestep:
-              ! var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  var_to_update%q_3d(:,k,:)   +  &
-              !                                  (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)                                               
+                elseif (options%parameters%nudging ==1 ) then ! if  nudging at io timestep:
+                    var_to_update%data_3d(:,k,:)  =  nudge_factor(k)        *  var_to_update%q_3d(:,k,:)   +  &
+                                                     (1 - nudge_factor(k))  *  var_to_update%data_3d(:,k,:)  
+                endif                                                 
 
             enddo
 
@@ -1823,10 +1834,6 @@ contains
         enddo
 
     end subroutine
-
-
-
-
 
 
 

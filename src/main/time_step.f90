@@ -491,10 +491,10 @@ contains
                 if (options%parameters%debug) call domain_check(domain, "img: "//trim(str(this_image()))//" advect(domain")
 
                 ! nudge the fields if requested:  ! Not sure yet if this should be every model time step or i/o time step.
-                if (options%parameters%nudging) call domain%apply_nudging(dt)
+                if (options%parameters%nudging == 2) call domain%apply_nudging(dt, options)
 
                 ! ! apply/update boundary conditions including internal wind and pressure changes.
-                call domain%apply_forcing(dt)
+                call domain%apply_forcing(dt, options)
                 if (options%parameters%debug) call domain_check(domain, "img: "//trim(str(this_image()))//" domain%apply_forcing")
 
             endif

@@ -54,7 +54,7 @@ module exchangeable_interface
       type(grid_t),                    intent(in)    :: grid
       type(variable_t),                intent(in),     optional :: metadata
       character(len=kMAX_NAME_LENGTH), intent(in),    optional :: forcing_var
-      logical,                         intent(in), optional ::  nudge  
+      integer,                         intent(in),    optional ::  nudge  
     end subroutine
 
     module subroutine set_neighbors(this, grid)
