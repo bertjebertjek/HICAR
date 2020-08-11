@@ -775,7 +775,7 @@ contains
 
         real, allocatable :: temp(:,:,:) !, terrain_u(:,:), terrain_v(:,:)
         integer :: i
-        real :: smooth_height, H, s, n, s1, s2
+        real :: smooth_height, H, s, n, s1, s2, gamma
         logical :: SLEVE  
         ! character :: filename, file_idS, file_idn
 
@@ -849,6 +849,9 @@ contains
             ! H        =  sum(dz_scl(1:max_level))  ! should also lead to smooth_height, but more error proof?
 
 
+            ! - - -   calculate invertibility parameter gamma (Schär et al 2002 eqn 20):  - - - - - -
+            gamma  =  1  -  MAXVAL(h1)/s1 * COSH(H/s1)/SINH(H/s1) - MAXVAL(h2)/s2 * COSH(H/s2)/SINH(H/s2)
+
             ! Decay Rate for Large-Scale Topography: svc1 = 10000.0000  COSMO1 operational setting (but model top is at ~22000 masl)
             ! Decay Rate for Small-Scale Topography: svc2 =  3300.0000
             if ((this_image()==1)) then
@@ -858,7 +861,8 @@ contains
               print*, "    Using a sleve_n of ", options%parameters%sleve_n
               ! print*, ""
               write(*,*) "    Smooth height (model top) is ", smooth_height, "m.a.s.l"
-              ! write(*,*) "  mean terrain ", sum(terrain) / size(terrain)
+              write(*,*) "    Invertibility parameter (gamma) is: ", gamma
+              if( gamma <= 0 ) write(*,*) " CAUTION: invertibility parameter (gamma) <=0. Reduce Decay rate(s) for SLEVE parameter "
               ! write(*,*) "  sum(dz) ", sum(dz(1:max_level))
               ! write(*,*) "  sum(dz_scl) ", sum(dz_scl(1:max_level))
               ! write(*,*) "  model top ", sum(dz_scl(1:nz))
