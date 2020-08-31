@@ -163,7 +163,7 @@ contains
         if (0<opt%vars_to_allocate( kVARS%w) )                          call setup(this%w,                        this%grid )
         if (0<opt%vars_to_allocate( kVARS%w) )                          call setup(this%w_real,                   this%grid )
         if (0<opt%vars_to_allocate( kVARS%water_vapor) )                call setup(this%water_vapor,              this%grid,     forcing_var=opt%parameters%qvvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
-        if (0<opt%vars_to_allocate( kVARS%potential_temperature) )      call setup(this%potential_temperature,    this%grid,     forcing_var=opt%parameters%tvar,       list=this%variables_to_force, force_boundaries=.True.)
+        if (0<opt%vars_to_allocate( kVARS%potential_temperature) )      call setup(this%potential_temperature,    this%grid,     forcing_var=opt%parameters%tvar,       list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%cloud_water) )                call setup(this%cloud_water_mass,         this%grid,     forcing_var=opt%parameters%qcvar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
         if (0<opt%vars_to_allocate( kVARS%cloud_number_concentration))  call setup(this%cloud_number,             this%grid )
         if (0<opt%vars_to_allocate( kVARS%cloud_ice) )                  call setup(this%cloud_ice_mass,           this%grid,     forcing_var=opt%parameters%qivar,      list=this%variables_to_force, force_boundaries=.True.,   nudge_list=this%variables_to_nudge, nudge=opt%parameters%nudging)
@@ -1689,7 +1689,7 @@ contains
               if( options%parameters%nudging == 2) then   !. If nudging at internal time step, the forcing should not be applied for nudged parameters?
                 do i = 1, this%variables_to_nudge%n_vars
                     if (trim(this%variables_to_nudge%var_list(i)%name) == trim(var_to_update%name)) then   ! var_list(this%current_variable)%name
-                        if ((this_image()==1)) print*, "skipping the forcing of nudged variable ", trim(this%variables_to_nudge%var_list(i)%name)
+                        ! if ((this_image()==1)) print*, "skipping the forcing of nudged variable ", trim(this%variables_to_nudge%var_list(i)%name)
                         skip = .True.
                         EXIT  ! exit current do loop
                     else
@@ -1805,13 +1805,13 @@ contains
 
             ! if ((this_image()==1).and.(options%parameters%debug))  then
             if ((this_image()==1)) then
-              if ( trim(var_to_update%name) == "QV" ) then   !! so nudgin fields are already available :)
-                    print*, "  nudging var ", trim(var_to_update%name)  !, "  at z level ", k, ":" !"has shape", shape(var_to_update%dqdt_3d)
-                    print*, "    computed data_3d max: ", MAXVAL(var_to_update%data_3d(:,:,:))
-                    print*, "    forcing dqdt_3d*dt max: ", MAXVAL(var_to_update%dqdt_3d(:,:,:) * dt%seconds())
-                    print*, "    forcing q_3d max: ", MAXVAL(var_to_update%q_3d(:,:,:) )
-                    print*, "    dt%seconds()", dt%seconds()
-              endif      
+              ! if ( trim(var_to_update%name) == "QV" ) then   !! so nudgin fields are already available :)
+              !       print*, "  nudging var ", trim(var_to_update%name)  !, "  at z level ", k, ":" !"has shape", shape(var_to_update%dqdt_3d)
+              !       print*, "    computed data_3d max: ", MAXVAL(var_to_update%data_3d(:,:,:))
+              !       print*, "    forcing dqdt_3d*dt max: ", MAXVAL(var_to_update%dqdt_3d(:,:,:) * dt%seconds())
+              !       print*, "    forcing q_3d max: ", MAXVAL(var_to_update%q_3d(:,:,:) )
+              !       print*, "    dt%seconds()", dt%seconds()
+              ! endif      
             endif
 
             !-----------------------
